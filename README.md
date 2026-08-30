@@ -58,9 +58,12 @@ Main simulation parameters:
 
 # Repository Structure
 uncertainty-aware-microgrid-ems
+Rye-Microgrid-Uncertainty-Aware-EMS
+
+│
 ├── 01_Data
 │   ├── rye_development_304days.csv
-│   └── rye_oos_127days.csv
+│   ├── rye_oos_127days.csv
 │
 ├── 02_Configuration
 │   └── study_parameters_frozen_v12.json
@@ -70,22 +73,21 @@ uncertainty-aware-microgrid-ems
 │
 ├── 04_STO_DA
 │   ├── 04_STO_DA_Scenario_Generation_BRA.ipynb
-│   └── 05_STO_DA_Pyomo_HiGHS_K_Convergence.ipynb
+│   ├── 05_STO_DA_Pyomo_HiGHS_K_Convergence.ipynb
 │
 ├── 05_OOS_Evaluation
-│   └── 06_STO_DA_127Day_OOS_Evaluation_FIXED.ipynb
+│   ├── 06_STO_DA_127Day_OOS_Evaluation_FIXED.ipynb
 │
 ├── 06_MPC
 │   └── 07_Rolling_Horizon_MPC_OOS_FIXED_DYNAMIC_ANCHOR.ipynb
 │
-├── 07_Sensitivity_Analysis
+├── 07_Sensitivity
 │   └── 08_Uncertainty_Source_Sensitivity_FULL.ipynb
 │
 ├── 08_Grid_Outage
 │   └── 09_Forced_Grid_Outage_Islanding_FULL_v3.ipynb
 │
 └── README.md
-
 
 
 ---
