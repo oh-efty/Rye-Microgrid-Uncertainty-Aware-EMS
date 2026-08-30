@@ -1,0 +1,196 @@
+{
+  "time": {
+    "T_hours": 24,
+    "delta_t_h": 1
+  },
+  "rye_physical_system": {
+    "pv_rated_kwp": 86.4,
+    "wind_rated_kw": 225.0,
+    "bess_energy_kwh": 500.0,
+    "bess_charge_max_kw": 400.0,
+    "bess_discharge_max_kw": 400.0,
+    "eta_charge": 0.85,
+    "eta_discharge": 1.0,
+    "efficiency_note": "Rye simulator convention: round-trip loss is collected on charging; discharge is lossless."
+  },
+  "bess_study_settings": {
+    "soc_min": 0.22,
+    "soc_max": 1.0,
+    "soc_initial": 0.5,
+    "soc_terminal": 0.5
+  },
+  "study_added_diesel_generator": {
+    "p_min_kw": 5.0,
+    "p_max_kw": 50.0,
+    "marginal_cost_nok_per_kwh": 4.26,
+    "note": "DG is a study extension; it is not part of the original Rye hardware."
+  },
+  "grid": {
+    "import_max_kw": 120.0,
+    "export_max_kw": 120.0,
+    "energy_tariff_nok_per_kwh": 0.05,
+    "sell_price_fraction_of_buy": 0.2,
+    "note": "Bidirectional export is a study extension; original Rye challenge did not allow export."
+  },
+  "load_priority": {
+    "critical_fraction": 0.33,
+    "noncritical_fraction": 0.67
+  },
+  "objective_coefficients": {
+    "battery_throughput_nok_per_kwh": 0.13,
+    "renewable_curtailment_nok_per_kwh": 0.1,
+    "noncritical_shedding_penalty_nok_per_kwh": 10.0,
+    "critical_shedding_penalty_nok_per_kwh": 100.0,
+    "note": "Shedding values are penalty weights used to enforce service priority, not claimed socioeconomic VOLL estimates."
+  },
+  "uncertainty": {
+    "alpha_levels": [
+      0.05,
+      0.1,
+      0.2,
+      0.3
+    ],
+    "initial_monte_carlo_scenarios": 5000,
+    "reduced_scenario_candidates": [
+      5,
+      10,
+      20,
+      30,
+      50,
+      75,
+      100
+    ],
+    "random_seed": 42,
+    "initial_pool_sensitivity": [
+      500,
+      1000,
+      2000,
+      5000
+    ],
+    "pool_sensitivity_alpha": 0.2,
+    "scenario_reduction_distance": "Euclidean distance on 72-D normalized error vector [PV(24), Wind(24), Load(24)]",
+    "convergence_reference_K": 100,
+    "convergence_primary_alpha": 0.2,
+    "convergence_cost_tolerance_percent": 0.5,
+    "final_reduced_scenarios": 50,
+    "scenario_count_status": "FROZEN after development-only K-convergence",
+    "scenario_count_justification": "K=50 was selected as the smallest candidate satisfying the primary alpha=0.20 development-set cost criterion in both GC and IS, with robustness checks against K=100 at alpha=0.10 and 0.30 showing negligible realized-cost differences and substantially lower solve time."
+  },
+  "evaluation": {
+    "development_days": 304,
+    "held_out_oos_days": 127,
+    "mpc_prediction_horizon_h": 6,
+    "mpc_horizon_sensitivity_h": [
+      3,
+      6,
+      12
+    ],
+    "confidence_level": 0.95,
+    "scenario_count_selection_set": "development only",
+    "scenario_count_validation_days": 24,
+    "scenario_count_selection_rule": "Choose the smallest K that, in both GC and IS on the fixed development validation subset, has absolute paired mean realized-cost difference <=0.5% of the mean absolute K=100 reference cost and a paired 95% CI containing zero; otherwise retain K=100. Verify selected K against K=100 at alpha=0.10 and 0.30.",
+    "final_oos_status": "127 held-out days are reserved for final evaluation only; no further K tuning.",
+    "common_oos_forecast_rule": "DET and STO use the same controlled point forecast for each (date, alpha), generated with the deterministic baseline seed rule from Notebook 03.",
+    "mpc_oos_rule": "MPC is evaluated on the same 127 held-out days and alpha levels as DET/STO/PF. No MPC tuning is performed on the held-out set."
+  },
+  "solver": {
+    "modeling": "Pyomo",
+    "solver": "HiGHS",
+    "name": "HiGHS via Pyomo",
+    "main_mip_rel_gap": 1e-06,
+    "main_mip_abs_gap": 1e-07,
+    "strict_pf_mip_rel_gap": 1e-09,
+    "strict_pf_mip_abs_gap": 1e-09,
+    "benchmark_correction_note": "Final PF benchmark is re-solved on all 127 held-out days and both modes with strict MIP tolerances, then merged into the already-completed DET/STO daily results before CoU and SMR are recomputed."
+  },
+  "mpc": {
+    "main_prediction_horizon_h": 6,
+    "supplementary_horizon_sensitivity_h": [
+      3,
+      6,
+      12
+    ],
+    "current_hour_information": "Measured PV, wind, load, price, and current SOC are known at each MPC update.",
+    "future_forecast_error_model": "sigma_lead = alpha * sqrt(lead_hours / 24), lead_hours >= 1; current-hour sigma=0.",
+    "forecast_pair_construction": "realized = forecast*(1+e); therefore forecast = realized/(1+e), with Gaussian e and physical clipping.",
+    "terminal_soc_rule": "Feasibility-safe dynamic anchor with soft final SOC equality. At each hour, the remaining-day anchor minimizes operating cost plus 1000 NOK/kWh times absolute terminal battery-energy deviation from SOC=0.50. The local Hp-hour MPC then uses a hard terminal SOC equal to the feasible anchor SOC at the end of the local window.",
+    "implementation": "Receding-horizon deterministic MILP; only the first-hour action is implemented before re-optimization.",
+    "random_seed": 42,
+    "terminal_reference_status": "Final feasibility-safe formulation. Hard final equality can be physically unreachable after rolling forecast updates in islanded mode when insufficient remaining load exists to absorb battery discharge.",
+    "computational_note": "Each implemented MPC update requires one remaining-day anchor solve plus one local Hp-hour solve.",
+    "terminal_soft_penalty_nok_per_kwh": 1000.0,
+    "terminal_soc_review_band_absolute": 0.01
+  },
+  "uncertainty_source_sensitivity": {
+    "status": "full_oos_planned",
+    "sources": [
+      "PV-only",
+      "Wind-only",
+      "Load-only",
+      "Combined"
+    ],
+    "single_source_daily_cases_per_strategy": 3048,
+    "combined_results": "reuse frozen main OOS results",
+    "N0": 5000,
+    "K": 50,
+    "single_source_bra": "common 24-D standardized BRA template shared across single sources",
+    "point_forecast_crn": "generate all three error streams in frozen order, then mask inactive sources",
+    "mpc_horizon_h": 6,
+    "pf": "reuse strict source-independent PF benchmark"
+  },
+  "forced_grid_outage_study": {
+    "status": "FROZEN supplementary resilience stress test \u2014 v3 fair causal emergency recourse",
+    "forecast_uncertainty_source": "Combined PV + Wind + Load",
+    "alpha": 0.2,
+    "normal_operation": "grid-connected",
+    "outage_start_hour": 18,
+    "grid_restoration_hour": 22,
+    "outage_hours": [
+      18,
+      19,
+      20,
+      21
+    ],
+    "outage_duration_h": 4,
+    "information_pattern": {
+      "DET": "Normal grid-connected day-ahead plan; outage not anticipated. Pre-outage realized dispatch preserves the day-ahead discrete schedule and hour-18 SOC anchor. At outage detection, one common emergency re-dispatch is allowed for the remaining day.",
+      "STO": "PV/wind/load uncertainty-aware day-ahead plan; outage not anticipated. Pre-outage realized dispatch preserves the stochastic day-ahead discrete schedule and expected hour-18 SOC anchor. At outage detection, one common emergency re-dispatch is allowed for the remaining day.",
+      "MPC": "Does not anticipate the outage before hour 18. Once observed, it re-optimizes hourly with updated grid status, measured SOC, current measurements, and updated forecasts.",
+      "PF": "Oracle benchmark knows the realized trajectories and full outage profile."
+    },
+    "evaluation_days": 127,
+    "baseline_comparison": "paired against frozen no-outage grid-connected Combined alpha=0.20 OOS results",
+    "main_metrics": [
+      "realized operating cost",
+      "incremental outage cost",
+      "critical EENS",
+      "noncritical EENS",
+      "diesel energy",
+      "BESS throughput",
+      "renewable curtailment",
+      "computation time"
+    ],
+    "confidence_level": 0.95,
+    "scenario_count_K": 50,
+    "mpc_prediction_horizon_h": 6,
+    "note": "Supplementary robustness/resilience evaluation; not claimed as the main novelty.",
+    "outage_response_policy_version": "v3",
+    "response_policy": "DET/STO do not anticipate the outage in day-ahead scheduling. Before hour 18, their realized continuous dispatch follows the fixed day-ahead discrete schedule and is anchored to the day-ahead SOC at outage onset. At hour 18, after the outage is observed, both receive the same one-shot deterministic emergency re-dispatch for hours 18\u201323 with free diesel and battery-mode binaries, updated forecasts, known grid outage/restoration status, and terminal SOC=0.50. The emergency binary plan is then evaluated on the realized remainder. MPC continues hourly rolling re-optimization; PF remains the oracle benchmark.",
+    "preoutage_soc_anchor": {
+      "DET": "SOC at hour 18 from the deterministic day-ahead plan",
+      "STO": "scenario-probability-weighted expected SOC at hour 18 from the stochastic day-ahead plan"
+    },
+    "common_emergency_recourse": {
+      "trigger_hour": 18,
+      "reoptimizations_for_DET_STO": 1,
+      "future_forecast_rule": "same frozen horizon-dependent forecast construction used by MPC at outage detection",
+      "grid_information_after_detection": "outage hours 18\u201321 and restoration at hour 22 are known once outage is detected",
+      "diesel_commitment_after_detection": "free to re-optimize",
+      "battery_mode_after_detection": "free to re-optimize",
+      "terminal_soc": 0.5,
+      "realized_evaluation": "emergency binary sequence fixed; continuous dispatch evaluated against actual PV/wind/load over remaining hours"
+    },
+    "comparison_fairness_note": "v3 removes the artificial restriction that froze DET/STO diesel and battery-mode binaries through the sudden outage. DET/STO can physically respond once the contingency is observed, while MPC retains the distinct advantage of repeated hourly forecast/state updates."
+  },
+  "configuration_version": "study_parameters_frozen_v12"
+}
