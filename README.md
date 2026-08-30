@@ -60,7 +60,6 @@ Main simulation parameters:
 uncertainty-aware-microgrid-ems
 Rye-Microgrid-Uncertainty-Aware-EMS
 
-│
 ├── 01_Data
 │   ├── rye_development_304days.csv
 │   ├── rye_oos_127days.csv
