@@ -1,8 +1,8 @@
 # Uncertainty-Aware Microgrid Energy Management Framework
 
-##Author: Obyedul Haque Efty
+## Author: Obyedul Haque Efty
 
-##Affiliation: American International University-Bangladesh (AIUB)
+## Affiliation: American International University-Bangladesh (AIUB)
 
 This repository contains the datasets, optimization models, simulation
 framework, and evaluation codes developed for an uncertainty-aware microgrid
